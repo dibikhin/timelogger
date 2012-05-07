@@ -1,0 +1,16 @@
+%form{:action => "/logon", :method => "post"}
+	.narrow-form
+		%fieldset
+			%legend
+				%h2
+					Log On
+			%div
+				%input{:type => "text", :name => "UserName", :placeholder => "User name"}
+			%div 
+				%input{:type => "password", :name => "Password", :placeholder => "Password"}
+			%div 
+				%input{:type => "checkbox", :name => "RememberMe", :value => "true"}
+				%label{:for => "RememberMe"} Remember me?
+			%input{:type => "submit", :value => "Log On"}
+			or 
+			%a{:href => "/Account/Register"} Register

@@ -1,0 +1,43 @@
+%form{:action => "/profile", :method => "POST"}
+	%fieldset
+		%legend
+			%h2
+				Profile
+		%table
+			%tr
+				%td
+					User name
+				%td
+					ivan.dobsky
+			%tr
+				%td
+					Email
+				%td
+					dobsky@ho.me
+			%tr        
+				%td
+					&nbsp;
+			%tr
+				%td
+					%b Redmine settings
+				%td
+			%tr
+				%td
+					%label{:for => "RedmineTimeEntriesUrl"} Time entries URL
+				%td
+					%input{:type => "url", :name => "RedmineTimeEntriesUrl"}						
+			%tr
+				%td
+					%label{:for => "RedmineApiKey"} API key
+				%td
+					%input{:type => "text", :name => "RedmineApiKey"}								
+			%tr
+				%td
+					%label{:for => "RedmineDefaultActivityId"} Default activity ID
+				%td
+					%input{:type => "text", :name => "RedmineDefaultActivityId"}												
+		%div
+			&nbsp;			
+		%input{:type => "submit", :value => "Save"}
+		or 
+		%a{:href => "/timelog"} back to timelog

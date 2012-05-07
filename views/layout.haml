@@ -1,0 +1,22 @@
+﻿!!! 5
+%html
+	%head
+		%meta{:charset => "utf-8"}
+		%title= @title
+		%link{:rel => "stylesheet", :href => "/css/site.css"}
+	%body
+		.page
+			%header
+				.text-align-right
+					%strong
+						%a{:href => "/profile"} ivan.dobsky
+						&nbsp;
+						%a{:href => "/logoff"} Log Off
+				%h1 Timelogger
+			%section
+				= yield
+			%footer
+				.text-align-right
+					%a{:href => "https://bitbucket.org/dibikhin/timelogger"} BitBucket
+					%a{:href => "http://twitter.com/dibikhin"} Twitter
+					%a{:href => "mailto:dibikhin@gmail.com?Subject=Timelogger"} E-mail
