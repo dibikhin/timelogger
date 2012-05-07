@@ -6,8 +6,6 @@ set :token,'shakenN0tstirr3d'
 set :password,'asdf1234'
 
 helpers do
-  def admin? ; request.cookies[settings.username] == settings.token ; end
-  def protected! ; halt [ 401, 'Not Authorized' ] unless admin? ; end
   def authenticated? ; request.cookies[settings.username] == settings.token ; end
 end
 
@@ -16,8 +14,6 @@ get '/' do
 end
 
 get '/timelog' do
-#	puts "request.cookies[settings.username]: " + request.cookies[settings.username].to_s
-#	protected!
 	if	authenticated?
 		@title = "Timelog"
 		haml :index
@@ -45,7 +41,6 @@ post '/logon' do
 end
 
 get '/logoff' do
-#	puts "request.cookies[settings.username]: " + request.cookies[settings.username].to_s
 	if authenticated?
 		response.set_cookie(settings.username, false)
 	end
@@ -74,3 +69,7 @@ get '/profile' do
 		redirect '/register'
 	end
 end
+
+#require 'digest'
+#puts Digest::MD5.hexdigest "My secret1"
+# 'mongodb://myusername:myuserpass@flame.mongohq.com:27019
