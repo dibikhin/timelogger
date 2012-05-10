@@ -1,4 +1,4 @@
-%form{:action => "/profile", :method => "POST"}
+%form{:action => "/profile", :method => "post"}
 	%fieldset
 		%legend
 			%h2
@@ -6,14 +6,16 @@
 		%table
 			%tr
 				%td
-					User name
+					Your name
 				%td
-					ivan.dobsky
+			%tr
+				%td
+					Login
+				%td= user.login
 			%tr
 				%td
 					Email
-				%td
-					dobsky@ho.me
+				%td= user.email
 			%tr        
 				%td
 					&nbsp;
@@ -23,19 +25,19 @@
 				%td
 			%tr
 				%td
-					%label{:for => "RedmineTimeEntriesUrl"} Time entries URL
+					%label{:for => "redmineTimeEntriesUrl"} Time entries URL
 				%td
-					%input{:type => "url", :name => "RedmineTimeEntriesUrl"}						
+					%input{:type => "url", :name => "redmineTimeEntriesUrl", :value => user.redmineTimeEntriesUrl}
 			%tr
 				%td
-					%label{:for => "RedmineApiKey"} API key
+					%label{:for => "redmineApiKey"} API key
 				%td
-					%input{:type => "text", :name => "RedmineApiKey"}								
+					%input{:type => "text", :name => "redmineApiKey", :value => user.redmineApiKey}						
 			%tr
 				%td
-					%label{:for => "RedmineDefaultActivityId"} Default activity ID
+					%label{:for => "redmineDefaultActivityId"} Default activity ID
 				%td
-					%input{:type => "text", :name => "RedmineDefaultActivityId"}												
+					%input{:type => "text", :name => "redmineDefaultActivityId", :value => user.redmineDefaultActivityId}
 		%div
 			&nbsp;			
 		%input{:type => "submit", :value => "Save"}
