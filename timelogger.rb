@@ -4,21 +4,36 @@ require 'mongo'
 require 'digest'
 require 'base64'
 
-set :username,'dobsky'
-set :token,'shakenN0tstirr3d'
-set :password,'asdf1234'
 set :ticket, 'ticket'
 
 helpers do
 	def cookies_ok?
-#		request.cookies[settings.username] == settings.token
-		request.cookies[settings.ticket]
+		cookie = request.cookies[settings.ticket]
+		if !cookie.nil? # any_nil_or_empty
+			ticket = cookie.split(':')
+			if !ticket.nil? # any_nil_or_empty
+				login = ticket[0]
+				token = ticket[1]
+				# any_nil_or_empty?(login, token)
+				userDoc = get_users.find_one('_id' => login)
+				if !userDoc.nil? # any_nil_or_empty
+					user = User.new(userDoc)
+					if !user.nil?
+						@username = user.name # bad magic
+						@login = user.login
+						return token == get_token(user.login, user.password)
+					end
+				end
+			end
+		end
+		false
 	end
 
 	def get_users
 		return @users if @users
 		@users = Mongo::Connection.from_uri(
-			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
+#			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
+			"mongodb://localhost:27017/Timelog")
 			.db("Timelog").collection("Users")
 		@users
 	end
@@ -26,15 +41,15 @@ helpers do
 	# auth helpers
 
 	def based64md5(string)
-		Base64.encode64 Digest::MD5.digest string
+		Base64.strict_encode64(Digest::MD5.digest(string))
 	end
 
 	def auth_ok?(user, login, password)
-		user.login == login && user.password == based64md5 password
+		user.login == login && user.password == based64md5(password)
 	end
 
 	def get_token(login, password)
-		based64md5 login + password
+		based64md5(login + password)
 	end
 
 	# param helpers
@@ -44,7 +59,7 @@ helpers do
 	end
 
 	def any_nil_or_empty?(params)
-		nil_or_empty? params || params.any? {|key, value| nil_or_empty?(value)}
+		nil_or_empty?(params) || params.any? {|key, value| nil_or_empty?(value)}
 	end
 end
 
@@ -53,7 +68,7 @@ get '/' do
 end
 
 get '/timelog' do
-	if	cookies_ok?
+	if cookies_ok?
 		@title = "Timelog"
 		haml :index
 	else
@@ -71,39 +86,30 @@ get '/logon' do
 end
 
 post '/logon' do
-#  if params["UserName"] == settings.username && params["Password"] == settings.password
-#    response.set_cookie(settings.username, {:value => settings.token, :path => '/'})
-#    redirect '/timelog'
-#  else
-#    redirect '/logon'
-#  end
-	if !any_nil_or_empty?(:login => params[:login], :password => params[:password])
-		user = User.new(get_users.find_one('_id' => params[:login]))
-		if auth_ok?(user, params[:login], params[:password])
-			response.set_cookie(settings.ticket, {:value => user.login + ':' + get_token(user.login, user.password), :path => '/'})
-			redirect '/timelog'
-		else
-			redirect '/logon'
+	login = params[:login].strip
+	password = params[:password].strip
+
+	if !any_nil_or_empty?(:login => login, :password => password)
+		userDoc = get_users.find_one('_id' => params[:login])
+		if !userDoc.nil? # any_nil_or_empty?
+			user = User.new(userDoc)
+			if auth_ok?(user, login, password)
+				response.set_cookie(settings.ticket,
+					{:value => user.login + ':' + get_token(user.login, user.password), :path => '/'})
+				redirect '/timelog'
+			end
 		end
-	else
-		redirect '/logon'
 	end
+
+	redirect '/logon'
 end
 
 get '/logoff' do
-	#if cookies_ok?
-	#	response.set_cookie(settings.username, false)
-	#end
-	#redirect '/logon'
-
-	ticket = request.cookies[settings.ticket].split(':')
-	# length!
-	login = ticket[0]
-	token = ticket[1]
-	if !any_nil_or_empty(:login => login, :token => token)
-		user = User.new(get_users.find_one('_id' => login))
-		# ???
+	cookie = request.cookies[settings.ticket]
+	if !cookie.nil?
+		response.set_cookie(settings.ticket, false)
 	end
+	redirect '/logon'
 end
 
 get '/register' do
@@ -116,13 +122,32 @@ get '/register' do
 end
 
 post '/register' do
-	puts "user name is: " + params[:UserName]
-	puts "email is: " + params[:Email]
+	username = params[:username]
+	login = params[:login]
+	email = params[:email]
+	password = params[:password]
+	confirmPassword = params[:confirmPassword]
+
+	# params strip
+	# params.each { |key, value| puts value }
+	# blank?(username, login, email, password, confirmPassword)
+
+	if password == confirmPassword
+		doc = {'_id' => login, 'Password' => based64md5(password),
+			'Name' => username, 'Email' => email, 'State' => 0}
+
+		get_users.insert(doc)
+		response.set_cookie(settings.ticket,
+			{:value => login + ':' + get_token(login, based64md5(password)), :path => '/'})
+		redirect '/timelog'
+	else
+		redirect '/register'
+	end
 end
 
 get '/profile' do
 	if cookies_ok?
-		userDoc = get_users.find_one("_id" => "ivan.dobsky")
+		userDoc = get_users.find_one("_id" => @login) # bad magic
 		@title = "Profile"
 		haml :profile, :locals => {:user => User.new(userDoc)}
 	else
@@ -133,7 +158,7 @@ end
 post '/profile' do
 	if cookies_ok?
 		get_users.update(
-			{'_id' => 'ivan.dobsky'},
+			{'_id' => @login},
 			{'$set' => {
 				'RedmineTimeEntriesUrl'=> params[:redmineTimeEntriesUrl],
 				'RedmineApiKey'=> params[:redmineApiKey],
@@ -145,20 +170,17 @@ post '/profile' do
 end
 
 class User
-	attr_reader :login, :name, :email, :redmineTimeEntriesUrl, :redmineApiKey, :redmineDefaultActivityId
+	attr_reader :login, :password, :name, :email, :state,
+		:redmineTimeEntriesUrl, :redmineApiKey, :redmineDefaultActivityId
 
 	def initialize(doc)
 		@login = doc['_id']
+		@password = doc['Password']
 		@name = doc["Name"]
 		@email = doc["Email"]
+		@state = doc["State"]
 		@redmineTimeEntriesUrl = doc["RedmineTimeEntriesUrl"]
 		@redmineApiKey = doc["RedmineApiKey"]
 		@redmineDefaultActivityId = doc["RedmineDefaultActivityId"]
 	end
 end
-
-#require 'digest'
-#puts Digest::MD5.hexdigest "My secret1"
-#bundle exec ruby timelogger.rb
-
-#30041 anton

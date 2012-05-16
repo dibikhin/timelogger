@@ -8,15 +8,19 @@
 		.page
 			%header
 				.text-align-right
-					%strong
-						%a{:href => "/profile"} ivan.dobsky
-						&nbsp;
+					- if defined?(@username)
+						%strong
+							%a{:href => "/profile"}= @username
+							&nbsp;
 						%a{:href => "/logoff"} Log Off
+					- else
+						%strong
+							&nbsp;
 				%h1 Timelogger
 			%section
 				= yield
 			%footer
 				.text-align-right
-					%a{:href => "https://bitbucket.org/dibikhin/timelogger"} BitBucket
+					%a{:href => "https://github.com/dibikhin/timelogger"} GitHub
 					%a{:href => "http://twitter.com/dibikhin"} Twitter
 					%a{:href => "mailto:dibikhin@gmail.com?Subject=Timelogger"} E-mail

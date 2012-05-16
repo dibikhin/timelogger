@@ -3,15 +3,19 @@
 		%fieldset
 			%legend
 				%h2
-					New Account	
+					New Account
 			%div
-				%input{:type => "text", :name => "UserName", :placeholder => "User name"}
-			%div 
-				%input{:type => "email", :name => "Email", :placeholder => "Email"}
-			%div 
-				%input{:type => "password", :name => "Password", :placeholder => "Password"}
-			%div 
-				%input{:type => "password", :name => "ConfirmPassword", :placeholder => "Confirm password"}
+				%input{:type => "text", :name => "username", :placeholder => "Your name"}
+			%div
+				%input{:type => "text", :name => "login", :placeholder => "Login"}
+			%div
+				%input{:type => "email", :name => "email", :placeholder => "Email"}
+			%div
+				%input{:type => "password", :name => "password", :placeholder => "Password"}
+			%div
+				%input{:type => "password", :name => "confirmPassword", :placeholder => "Confirm password"}
 			%input{:type => "submit", :value => "Register"}
 			or
-			%a{:href => "/Account/LogOn"} Log On
+			%a{:href => "/logon"} Log On
+
+			Theodore John Kaczynski
