@@ -3,6 +3,7 @@ require 'sinatra'
 require 'mongo'
 require 'digest'
 require 'base64'
+require 'time'
 
 set :ticket, 'ticket'
 
@@ -19,8 +20,10 @@ helpers do
 				if !userDoc.nil? # any_nil_or_empty
 					user = User.new(userDoc)
 					if !user.nil?
-						@username = user.name # bad magic
-						@login = user.login
+						@username 			= user.name 		# bad magic started
+						@state				= user.state
+						@login				= user.login
+						@currentRecordId 	= user.currentRecordId
 						return token == get_token(user.login, user.password)
 					end
 				end
@@ -29,11 +32,11 @@ helpers do
 		false
 	end
 
+#			"mongodb://localhost:27017/Timelog")
 	def get_users
 		return @users if @users
 		@users = Mongo::Connection.from_uri(
-#			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
-			"mongodb://localhost:27017/Timelog")
+			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
 			.db("Timelog").collection("Users")
 		@users
 	end
@@ -61,6 +64,26 @@ helpers do
 	def any_nil_or_empty?(params)
 		nil_or_empty?(params) || params.any? {|key, value| nil_or_empty?(value)}
 	end
+
+	#	Record manager
+	def get_today_records(login)
+		time = Time.now		# Wed May 23 00:00:00 +0400 2012 -> Tue May 22 20:00:00 UTC 2012
+		get_record_list(login, Time.local(time.year, time.month, time.day).utc, Time.now.utc)
+	end
+
+	#	Record provider
+	def get_records
+		return @records if @records
+		@records = Mongo::Connection.from_uri(
+#			"mongodb://localhost:27017/Timelog")
+			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
+			.db("Timelog").collection("Records")
+		@records
+	end
+
+	def get_record_list(login, startUtc, endUtc)
+		get_records.find({'UserId' => login, 'StartUtc' => {'$gte' => startUtc, '$lte' => endUtc}})
+	end
 end
 
 get '/' do
@@ -70,7 +93,9 @@ end
 get '/timelog' do
 	if cookies_ok?
 		@title = "Timelog"
-		haml :index
+		haml :timelog, :locals => {:state => @state, :currentRecordId => @currentRecordId,
+			:todayRecords => get_today_records(@login).map{ |recDoc| Record.new(recDoc) }
+				.sort_by {|rec| rec.startUtc}.reverse!}
 	else
 		redirect '/logon'
 	end
@@ -169,8 +194,10 @@ post '/profile' do
 	end
 end
 
+#	Entities
+
 class User
-	attr_reader :login, :password, :name, :email, :state,
+	attr_reader :login, :password, :name, :email, :state, :currentRecordId,
 		:redmineTimeEntriesUrl, :redmineApiKey, :redmineDefaultActivityId
 
 	def initialize(doc)
@@ -179,8 +206,49 @@ class User
 		@name = doc["Name"]
 		@email = doc["Email"]
 		@state = doc["State"]
+		@currentRecordId = doc['CurrentRecordId']
 		@redmineTimeEntriesUrl = doc["RedmineTimeEntriesUrl"]
 		@redmineApiKey = doc["RedmineApiKey"]
 		@redmineDefaultActivityId = doc["RedmineDefaultActivityId"]
 	end
 end
+
+class Record
+	attr_reader :startUtc, :endUtc, :taskId, :description, :isFinished, :duration, :lastPauseStartUtc
+
+	def initialize(doc)
+		@id = doc['_id']
+		@userId = doc['UserId']
+		@startUtc = doc['StartUtc']
+		@endUtc = doc['EndUtc']
+		@taskId = doc['TaskId']
+		@description = doc['Description']
+		@isFinished = doc['IsFinished']
+		@lastPauseStartUtc = doc['LastPauseStartUtc']
+
+		# '00:26:52.6284490' -> Wed May 23 00:26:52 +0400 2012 -> 1612
+		tpd = doc['TotalPausedDuration']
+		if !tpd.nil?
+			totalPausedTime = Time.parse(tpd)
+			@totalPausedDuration =  totalPausedTime.hour*60 + totalPausedTime.min*60 + totalPausedTime.sec
+		end
+
+		if @startUtc.nil? || @endUtc.nil?
+			@duration = nil
+		elsif !@totalPausedDuration.nil?
+			@duration = Time.at((@endUtc - @startUtc) - @totalPausedDuration).utc
+		else
+			@duration = Time.at(@endUtc - @startUtc).utc	# 1356 -> Thu Jan 01 00:22:36 UTC 1970
+		end
+	end
+end
+
+# Time.at(Time.now.utc - Time.utc(2012, 5, 21, 17, 30)).utc
+# Time.at(dur).utc.strftime('%H:%M:%S')  # 1612 -> 00:26:52
+#	- if !todayRecords.nil?
+#		%table
+#		- todayRecords.each do |record|
+#			%tr
+#				%td= record.startUtc
+#        [BsonIgnore] public TimeSpan? Duration
+# BSON::ObjectId('')

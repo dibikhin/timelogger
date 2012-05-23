@@ -1,0 +1,17 @@
+%fieldset
+	%legend
+		%h2= Time.now.strftime('%A, %B %-d')
+	-# controls
+	- case state
+	- when 0
+		%form{:action => '/StartRecording', :method => 'post'}
+			%input{:type => 'submit', :value => 'Start', :autofocus => 'true'}
+	- when 1
+		%form{:action => '/BeginSaveRecord', :method => 'post'}
+			%input{:type => 'button', :value => 'Skip', :onclick => 'window.location="/SkipRecord"', :autofocus => 'true' }
+			%input{:type => 'button', :value => 'Save'}
+			%input{:type => 'button', :value => 'Pause', :onclick => 'window.location="/PauseRecording"' }
+			or
+			%a{:href => '/BeginStopRecording'} stop
+	-# record list
+	= haml :recordList, :locals => {:todayRecords => todayRecords}
