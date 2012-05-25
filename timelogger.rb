@@ -32,13 +32,24 @@ helpers do
 		false
 	end
 
-#			"mongodb://localhost:27017/Timelog")
+	# User manager
+
+	def set_state(login, state)
+		provider_set_state(login, state)
+	end
+
+	# User provider
+
 	def get_users
 		return @users if @users
 		@users = Mongo::Connection.from_uri(
 			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
-			.db("Timelog").collection("Users")
+			.db("Timelog").collection("Users") # "mongodb://localhost:27017/Timelog"
 		@users
+	end
+
+	def provider_set_state(login, state)
+		get_users.update({'_id' => login}, {'$set' => {'State' => state}})
 	end
 
 	# auth helpers
@@ -75,9 +86,8 @@ helpers do
 	def get_records
 		return @records if @records
 		@records = Mongo::Connection.from_uri(
-#			"mongodb://localhost:27017/Timelog")
 			"mongodb://myusername:myuserpass@flame.mongohq.com:27019/Timelog")
-			.db("Timelog").collection("Records")
+			.db("Timelog").collection("Records")	# "mongodb://localhost:27017/Timelog"
 		@records
 	end
 
@@ -100,6 +110,21 @@ get '/timelog' do
 		redirect '/logon'
 	end
 end
+
+#   Timelog controller
+
+post '/start' do
+	if cookies_ok?
+		if state == 0
+			set_state(@login, 1)
+			start_new_record @login
+
+			redirect '/timelog'
+		end
+	end
+end
+
+# 	Account controller
 
 get '/logon' do
 	if cookies_ok?
@@ -194,7 +219,7 @@ post '/profile' do
 	end
 end
 
-#	Entities
+#	Entities	#
 
 class User
 	attr_reader :login, :password, :name, :email, :state, :currentRecordId,
@@ -214,7 +239,7 @@ class User
 end
 
 class Record
-	attr_reader :startUtc, :endUtc, :taskId, :description, :isFinished, :duration, :lastPauseStartUtc
+	attr_reader :id, :startUtc, :endUtc, :taskId, :description, :isFinished, :duration, :lastPauseStartUtc
 
 	def initialize(doc)
 		@id = doc['_id']
@@ -227,9 +252,9 @@ class Record
 		@lastPauseStartUtc = doc['LastPauseStartUtc']
 
 		# '00:26:52.6284490' -> Wed May 23 00:26:52 +0400 2012 -> 1612
-		tpd = doc['TotalPausedDuration']
-		if !tpd.nil?
-			totalPausedTime = Time.parse(tpd)
+		durationString = doc['TotalPausedDuration']
+		if !durationString.nil?
+			totalPausedTime = Time.parse(durationString)
 			@totalPausedDuration =  totalPausedTime.hour*60 + totalPausedTime.min*60 + totalPausedTime.sec
 		end
 
@@ -252,3 +277,9 @@ end
 #				%td= record.startUtc
 #        [BsonIgnore] public TimeSpan? Duration
 # BSON::ObjectId('')
+#
+#        CanStartRecording = 0
+#        CanSaveRecordOrEndRecording = 1
+#        ShouldSaveRecord = 2
+#        ShouldSaveRecordAndEndRecording = 3
+#        Paused = 4
