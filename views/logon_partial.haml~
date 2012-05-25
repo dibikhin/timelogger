@@ -1,5 +1,0 @@
-@@logon_partial
-    %strong
-		%a{:href => "/Account/Profile"} ivan.dobsky
-	&nbsp;
-	%a{:href => "/Account/LogOff"} Log Off
