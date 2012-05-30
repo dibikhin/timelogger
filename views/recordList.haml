@@ -3,8 +3,8 @@
 		- todayRecords.each do |record|
 			- if record.isFinished
 				%tr
-					%td.text-align-right= record.startUtc.localtime.strftime '%l:%M %P'
-					%td.text-align-right= record.duration.strftime '%-H h %-M min %-S sec'
+					%td.text-align-right= record.startUtc.localtime.strftime('%l:%M %P')
+					%td.text-align-right= record.duration.strftime('%-H h %-M min %-S sec')
 					%td.text-align-right= record.taskId
 					%td
 						- if record.description.nil? && record.taskId.nil?
@@ -14,25 +14,25 @@
 							= record.description
 			- else
 				%tr
-					%td.text-align-right= record.startUtc.localtime.strftime '%k:%M'
+					%td.text-align-right= record.startUtc.localtime.strftime('%l:%M %P')
 					%td.text-align-right
-						- if record.lastPauseStartUtc.nil?		-# record wasn't paused
+						- if record.lastPauseStartUtc.nil?		# record wasn't paused
 							- currentDuration = Time.now.utc - record.startUtc
 							- if !record.totalPausedDuration.nil?
 								- currentDuration -= record.totalPausedDuration
-							= currentDuration.strftime '%-H h %-M min %-S sec'	# TODO parse
+							= Time.at(currentDuration).utc.strftime('%-H h %-M min %-S sec')
 						- else
 							- recordDurationWoPauses = Time.now.utc - record.startUtc - Time.now.utc - record.lastPauseStartUtc
 							- if !record.totalPausedDuration.nil?
-								- recordDurationWoPauses -= record.totalPausedDuration	# TODO parse
-							= recordDurationWoPauses.strftime '%-H h %-M min %-S sec'
+								- recordDurationWoPauses -= record.totalPausedDuration
+							= Time.at(recordDurationWoPauses).utc.strftime('%-H h %-M min %-S sec')
 					%td.text-align-right= record.taskId
 					%td
 						- if record.lastPauseStartUtc.nil?
 							%i
-								= "... recording"
+								= "...recording"
 						- else
 							%i
-								= "... last paused"
+								= "...last paused"
 								- pausedDuration = Time.now.utc - record.lastPauseStartUtc
-								= pausedDuration.strftime('%-H h %-M min %-S sec') + ' ago '
+								= Time.at(pausedDuration).utc.strftime('%-H h %-M min %-S sec') + ' ago '
