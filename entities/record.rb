@@ -13,10 +13,10 @@ class Record
     @lastPauseStartUtc = doc['LastPauseStartUtc']
 
     # '00:26:52.6284490' -> Wed May 23 00:26:52 +0400 2012 -> 1612
-    durationString = doc['TotalPausedDuration']
-    if !durationString.nil?
-      totalPausedTime = Time.parse(durationString)
-      @totalPausedDuration = totalPausedTime.hour*60 + totalPausedTime.min*60 + totalPausedTime.sec
+    duration_str = doc['TotalPausedDuration']
+    if !duration_str.nil?
+      total_paused_time = Time.parse(duration_str)
+      @totalPausedDuration = total_paused_time.hour*60 + total_paused_time.min*60 + total_paused_time.sec
     end
 
     if @startUtc.nil? || @endUtc.nil?

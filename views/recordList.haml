@@ -22,7 +22,7 @@
 								- currentDuration -= record.totalPausedDuration
 							= Time.at(currentDuration).utc.strftime('%-H h %-M min %-S sec')
 						- else
-							- recordDurationWoPauses = Time.now.utc - record.startUtc - Time.now.utc - record.lastPauseStartUtc
+							- recordDurationWoPauses = Time.now.utc - record.startUtc - (Time.now.utc - record.lastPauseStartUtc)
 							- if !record.totalPausedDuration.nil?
 								- recordDurationWoPauses -= record.totalPausedDuration
 							= Time.at(recordDurationWoPauses).utc.strftime('%-H h %-M min %-S sec')

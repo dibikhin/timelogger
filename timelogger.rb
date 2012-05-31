@@ -19,7 +19,7 @@ get '/timelog' do
   if !user.nil?
 		@title = "Timelog"
     @username = user.name
-    today_records = RecordManager.get_today_records(user.login)
+    today_records = RecordManager.get_today_records(user.login) # Mongo::ConnectionFailure
       .map {|recDoc| Record.new(recDoc)}
       .sort_by {|rec| rec.startUtc}.reverse!
 
@@ -34,17 +34,57 @@ end
 
 post '/start' do
 	user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 0
-      UserManager.set_state(user.login, 1)
+  if !user.nil? && user.state == 0 # can start
+      UserManager.set_state(user.login, 1) # can control
 			RecordManager.start_new_record(user.login)
-
 			redirect '/timelog'
 	end
 end
 
+post '/begin_save' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == 1 # can control
+    UserManager.set_state(user.login, 2)  # should save
+    redirect '/timelog'
+  end
+end
+
+post '/end_save' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == 2 # should save == saving
+    task_id = params[:task_id].strip
+    description = params[:description].strip
+
+    if !any_nil_or_empty?(task_id, description)
+      RecordManager.end_record(user.login, user.currentRecordId, task_id, description)
+      UserManager.set_state(user.login, 1) # can control == recording
+      RecordManager.start_new_record(user.login)
+    end
+  end
+  redirect '/timelog'
+end
+
+get '/pause' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == 1 # can control == recording
+    RecordManager.pause(user.currentRecordId)
+    UserManager.set_state(user.login, 4)
+    redirect '/timelog'
+  end
+end
+
+post '/resume' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == 4 # paused
+    RecordManager.resume(user.currentRecordId)
+    UserManager.set_state(user.login, 1) # can control == recording
+    redirect '/timelog'
+  end
+end
+
 get '/skip' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 1
+  if !user.nil? && user.state == 1 # can control
     RecordManager.end_record(user.login, user.currentRecordId)
     #UserManager.set_state(user.name, 1)
     RecordManager.start_new_record(user.login)
@@ -52,15 +92,13 @@ get '/skip' do
   end
 end
 
-#public ActionResult SkipRecord()
-#{
-#    var user = _accountManager.Get(User.Identity.Name);
-#_timelogManager.EndRecord(user.Login, user.CurrentRecordId.Value);
-#
-#_accountManager.SetState(User.Identity.Name, State.CanSaveRecordOrEndRecording);
-#_timelogManager.StartNewRecord(User.Identity.Name);
-#return RedirectToAction("Index");
-#}
+get '/continue' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? #&& user.state == 2, 3  # should save or should end == saving or ending
+    UserManager.set_state(user.login, 1)  # can control == recording
+    redirect '/timelog'
+  end
+end
 
 # 	Account controller
 
@@ -77,12 +115,11 @@ end
 post '/logon' do
 	login = params[:login].strip
 	password = params[:password].strip
-
-	if !any_nil_or_empty?(:login => login, :password => password)
-		user = UserManager.get(login)
-		if !user.nil? && Helpers.auth_ok?(user, login, password)
-				response.set_cookie(settings.ticket, {:value => Helpers.get_ticket(user.login, password), :path => '/'})
-				redirect '/timelog'
+  if !any_nil_or_empty?(login, password)
+    user = UserManager.get(login)
+    if !user.nil? && Helpers.auth_ok?(user, login, password)
+      response.set_cookie(settings.ticket, {:value => Helpers.get_ticket(user.login, password), :path => '/'})
+      redirect '/timelog'
     else
       redirect '/logon'
     end

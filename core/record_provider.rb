@@ -33,12 +33,25 @@ class RecordProvider
               'Description' => record.description,
               'IsFinished' => record.isFinished}})
   end
+
+  def self.set_last_pause_start(current_record_id)
+    records.update({'_id' => current_record_id}, {'$set' => {'LastPauseStartUtc' => Time.now.utc}})
+  end
+
+  def self.set_resume(current_record_id, last_pause_start_utc, total_paused_duration)
+    records.update(
+        {'_id' => current_record_id},
+        {'$set' =>
+             {'LastPauseStartUtc' => last_pause_start_utc,
+              'TotalPausedDuration' => Time.at(total_paused_duration).utc.strftime('%H:%M:%S')}}) # 1612 -> 00:26:52
+  end
 end
 
-#public void Set(Record record)
+#public void SetResume(ObjectId recordId, DateTime? lastPauseStartUtc, TimeSpan totalPausedDuration)
 #{
 #    _recordsCollection.Update(
-#        Query.EQ("_id", record.Id),
-#        Update.Set("EndUtc", record.EndUtc.Value).Set("TaskId", record.TaskId)
-#        .Set("Description", record.Description).Set("IsFinished", record.IsFinished));
+#        Query.EQ("_id", recordId),
+#        Update.Set("LastPauseStartUtc", lastPauseStartUtc)
+#        .Set("TotalPausedDuration", totalPausedDuration.ToString()));
+#// achtung! ToString() is necessary while lack of bson TimeSpan is present
 #}

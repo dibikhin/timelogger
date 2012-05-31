@@ -7,8 +7,8 @@ helpers do
     param.nil? || param.empty?
   end
 
-  def any_nil_or_empty?(params)
-    nil_or_empty?(params) || params.any? {|_, value| nil_or_empty?(value)}
+  def any_nil_or_empty?(*params)
+    params.any? {|param| nil_or_empty?(param)}
   end
 end
 
