@@ -6,59 +6,76 @@ require 'time'
 require "./core/record_manager"
 require "./core/user_manager"
 require "./entities"
-require "./helpers"
+require "./auth_helpers"
+require './helpers'
 
 set :ticket, 'ticket'
 
 get '/' do
-	redirect '/timelog'
+  redirect '/timelog'
 end
 
 get '/timelog' do
-  user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil?
-		@title = "Timelog"
-    @username = user.name
-    today_records = RecordManager.get_today_records(user.login) # Mongo::ConnectionFailure
-      .map {|recDoc| Record.new(recDoc)}
-      .sort_by {|rec| rec.startUtc}.reverse!
+  user = UserManager.get_authenticated(request.cookies[settings.ticket]) # Mongo::ConnectionFailure
+  if user.nil?
+    redirect '/logon'
+  else
+    @title = "Timelog"
+    @username = user.name # Mongo::ConnectionFailure below
+    today_records = RecordManager.get_today_records(user.login).sort_by { |rec| rec.startUtc }.reverse!
 
     haml :timelog,
          :locals => {:state => user.state, :currentRecordId => user.currentRecordId, :todayRecords => today_records}
-	else
-    redirect '/logon'
   end
 end
 
 #   Timelog controller
 
 post '/start' do
-	user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 0 # can start
-      UserManager.set_state(user.login, 1) # can control
-			RecordManager.start_new_record(user.login)
-			redirect '/timelog'
-	end
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])  # todo add to "before"
+  if !user.nil? && user.state == State::CAN_START
+    UserManager.set_state(user.login, State::RECORDING)
+    RecordManager.start_new_record(user.login)
+    redirect '/timelog'
+  end
 end
 
 post '/begin_save' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 1 # can control
-    UserManager.set_state(user.login, 2)  # should save
+  if !user.nil? && user.state == State::RECORDING
+    UserManager.set_state(user.login, State::SAVING)
     redirect '/timelog'
   end
 end
 
 post '/end_save' do
-  user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 2 # should save == saving
-    task_id = params[:task_id].strip
-    description = params[:description].strip
-
-    if !any_nil_or_empty?(task_id, description)
-      RecordManager.end_record(user.login, user.currentRecordId, task_id, description)
-      UserManager.set_state(user.login, 1) # can control == recording
+  task_id, description = params[:task_id].strip, params[:description].strip
+  unless Helpers.any_nil_or_empty?(description)
+    user = UserManager.get_authenticated(request.cookies[settings.ticket])
+    if !user.nil? && user.state == State::SAVING
+      RecordManager.end_record(user, task_id, description)
+      UserManager.set_state(user.login, State::RECORDING)
       RecordManager.start_new_record(user.login)
+    end
+  end
+  redirect '/timelog'
+end
+
+get '/begin_stop' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == State::RECORDING
+    UserManager.set_state(user.login, State::STOPPING)
+    redirect '/timelog'
+  end
+end
+
+post '/end_stop' do
+  task_id, description = params[:task_id].strip, params[:description].strip
+  unless Helpers.any_nil_or_empty?(description)
+    user = UserManager.get_authenticated(request.cookies[settings.ticket])
+    if !user.nil? && user.state == State::STOPPING
+      RecordManager.end_record(user, task_id, description)
+      UserManager.set_state(user.login, State::CAN_START)
     end
   end
   redirect '/timelog'
@@ -66,130 +83,123 @@ end
 
 get '/pause' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 1 # can control == recording
+  if !user.nil? && user.state == State::RECORDING
     RecordManager.pause(user.currentRecordId)
-    UserManager.set_state(user.login, 4)
+    UserManager.set_state(user.login, State::PAUSED)
     redirect '/timelog'
   end
 end
 
 post '/resume' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 4 # paused
+  if !user.nil? && user.state == State::PAUSED
     RecordManager.resume(user.currentRecordId)
-    UserManager.set_state(user.login, 1) # can control == recording
+    UserManager.set_state(user.login, State::RECORDING)
     redirect '/timelog'
   end
 end
 
 get '/skip' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == 1 # can control
-    RecordManager.end_record(user.login, user.currentRecordId)
-    #UserManager.set_state(user.name, 1)
+  if !user.nil? && user.state == State::RECORDING
+    RecordManager.end_record(user)
     RecordManager.start_new_record(user.login)
-    redirect '/timelog'
   end
+  redirect '/timelog'
+end
+
+get '/skip_on_stop' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == State::STOPPING
+    RecordManager.end_record(user)
+    UserManager.set_state(user.login, State::CAN_START)
+  end
+  redirect '/timelog'
 end
 
 get '/continue' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? #&& user.state == 2, 3  # should save or should end == saving or ending
-    UserManager.set_state(user.login, 1)  # can control == recording
-    redirect '/timelog'
+  if !user.nil? && (user.state == State::SAVING || user.state == State::STOPPING)
+    UserManager.set_state(user.login, State::RECORDING)
   end
+  redirect '/timelog'
 end
 
 # 	Account controller
 
 get '/logon' do
-	user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil?
-		redirect '/timelog'
-	else
-	  @title = "Log On"
-	  haml :logon
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if user.nil?
+    @title = "Log On"
+    haml :logon
+  else
+    redirect '/timelog'
   end
 end
 
 post '/logon' do
-	login = params[:login].strip
-	password = params[:password].strip
-  if !any_nil_or_empty?(login, password)
+  login, password = params[:login].strip, params[:password].strip
+  unless Helpers.any_nil_or_empty?(login, password)
     user = UserManager.get(login)
-    if !user.nil? && Helpers.auth_ok?(user, login, password)
-      response.set_cookie(settings.ticket, {:value => Helpers.get_ticket(user.login, password), :path => '/'})
+    if !user.nil? && AuthHelpers.auth_ok?(user, login, password)
+      response.set_cookie(settings.ticket, {:value => AuthHelpers.get_ticket(user.login, password), :path => '/'})
       redirect '/timelog'
-    else
-      redirect '/logon'
+      return
     end
-  else
-    redirect '/logon'
   end
+  redirect '/logon'
 end
 
 get '/logoff' do
-	cookie_value = request.cookies[settings.ticket]
-  if !(cookie_value.nil? || cookie_value.empty?)
+  cookie_value = request.cookies[settings.ticket]
+  unless cookie_value.nil? || cookie_value.empty?
     response.set_cookie(settings.ticket, nil)
   end
   redirect '/logon'
 end
 
 get '/register' do
-	user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil?
-		@title = "Register"
-		haml :register
-	else
-	  redirect '/timelog'
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if user.nil?
+    @title = "Register"
+    haml :register
+  else
+    redirect '/timelog'
   end
 end
 
 post '/register' do
-	username, login, email  = params[:username], params[:login], params[:email]
-  password, confirmPassword = params[:password], params[:confirmPassword]
+  username, login, email = params[:username].strip, params[:login].strip, params[:email].strip
+  password, confirm_password = params[:password].strip, params[:confirmPassword].strip
 
-	# params strip # params.each { |key, value| puts value } # blank?(username, login, email, password, confirmPassword)
-
-  if password == confirmPassword && UserManager.add(login, password, username, email)
-      response.set_cookie(settings.ticket, {:value => Helpers.get_ticket(login, password), :path => '/'})
+  unless Helpers.any_nil_or_empty?(username, login, email, password, confirm_password)
+    if password == confirm_password && UserManager.add(login, password, username, email)
+      response.set_cookie(settings.ticket, {:value => AuthHelpers.get_ticket(login, password), :path => '/'})
       redirect '/timelog'
-  else
-    redirect '/register'
+      return
+    end
   end
+  redirect '/register'
 end
 
 get '/profile' do
-	user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil?
-		@title = "Profile"
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if user.nil?
+    redirect '/register'
+  else
+    @title = "Profile"
     @username = user.name
-		haml :profile, :locals => {:user => user}
-	else
-	  redirect '/register'
+    haml :profile, :locals => {:user => user}
   end
 end
 
 post '/profile' do
-	user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil?
-		users.update(
-			{'_id' => user.login},
-			{'$set' => {
-				'RedmineTimeEntriesUrl'=> params[:redmineTimeEntriesUrl],
-				'RedmineApiKey'=> params[:redmineApiKey],
-				'RedmineDefaultActivityId'=> params[:redmineDefaultActivityId]}})
-		redirect '/timelog'
-  else
-    redirect '/logon'
+  time_entries_url, api_key, default_activity_id = params[:redmineTimeEntriesUrl], params[:redmineApiKey], params[:redmineDefaultActivityId]
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  unless user.nil?
+    UserManager.set_redmine_settings(user.login, time_entries_url, api_key, default_activity_id)
+    redirect '/timelog'
+    return
   end
+  redirect '/logon'
 end
-
-#        BSON::ObjectId('')
-#
-#        CanStartRecording = 0
-#        CanSaveRecordOrEndRecording = 1
-#        ShouldSaveRecord = 2
-#        ShouldSaveRecordAndEndRecording = 3
-#        Paused = 4

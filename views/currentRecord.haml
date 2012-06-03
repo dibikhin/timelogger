@@ -6,12 +6,10 @@
   - if !currentRecord.totalPausedDuration.nil?
     - currentDuration -= currentRecord.totalPausedDuration
   = Time.at(currentDuration).utc.strftime('%-H h %-M min %-S sec')
-%input{ :name => 'task_id', :placeholder => 'Task Id', :autofocus => 'true' }
--# style = "width: 52px; text-align: right;"
-%input{ :name => 'description', :placeholder => "Description" }
--# style = "width: 300px"
-%input{ :type => 'submit', :value => 'Save' }
+%input{ :name => 'task_id', :placeholder => 'Task Id', :class => 'narrow-input text-align-right', :autofocus => 'true' }
+%input{ :name => 'description', :placeholder => 'Description', :class => 'almost-wide-input' }
 - if state == 3 # should stop
-  %input{ :type => 'button', :value => 'Skip', :onclick => 'window.location="/skip"' }
+  %input{ :type => 'button', :value => 'Skip', :onclick => 'window.location="/skip_on_stop"' }
+%input{ :type => 'submit', :value => 'Save' }
 or
 %a{ :href => '/continue' } continue

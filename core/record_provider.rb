@@ -21,7 +21,8 @@ class RecordProvider
   end
 
   def self.get_record_list(login, start_utc, end_utc)
-    records.find({'UserId' => login, 'StartUtc' => {'$gte' => start_utc, '$lte' => end_utc}})
+    rec_doc_list = records.find({'UserId' => login, 'StartUtc' => {'$gte' => start_utc, '$lte' => end_utc}})
+    rec_doc_list.map { |rec_doc| Record.new(rec_doc) }
   end
 
   def self.set(record)
@@ -46,12 +47,3 @@ class RecordProvider
               'TotalPausedDuration' => Time.at(total_paused_duration).utc.strftime('%H:%M:%S')}}) # 1612 -> 00:26:52
   end
 end
-
-#public void SetResume(ObjectId recordId, DateTime? lastPauseStartUtc, TimeSpan totalPausedDuration)
-#{
-#    _recordsCollection.Update(
-#        Query.EQ("_id", recordId),
-#        Update.Set("LastPauseStartUtc", lastPauseStartUtc)
-#        .Set("TotalPausedDuration", totalPausedDuration.ToString()));
-#// achtung! ToString() is necessary while lack of bson TimeSpan is present
-#}

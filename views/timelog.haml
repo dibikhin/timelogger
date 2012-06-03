@@ -1,27 +1,27 @@
 %fieldset
 	%legend
-		%h2= Time.now.strftime '%A, %B %-d'		# e.g. Thursday, May 24
+		%h2= Time.now.strftime '%A, %B %-d'		#  Thursday, May 24
 	-# controls
 	- case state
 	- when 0
-		%form{:action => '/start', :method => 'post'}
+		%form{:action => '/start', :method => 'post', :class => 'padded-form'}
 			%input{:type => 'submit', :value => 'Start', :autofocus => 'true'}
 	- when 1
-		%form{:action => '/begin_save', :method => 'post'}
+		%form{:action => '/begin_save', :method => 'post', :class => 'padded-form'}
 			%input{:type => 'button', :value => 'Skip', :onclick => 'window.location="/skip"',
 				:autofocus => 'true' }
 			%input{:type => 'submit', :value => 'Save'}
 			%input{:type => 'button', :value => 'Pause', :onclick => 'window.location="/pause"'}
 			or
-			%a{:href => '/BeginStopRecording'} stop
+			%a{:href => '/begin_stop'} stop
 	- when 2
-		%form{:action => '/end_save', :method => 'post'}
+		%form{:action => '/end_save', :method => 'post', :class => 'padded-form'}
 			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state}
 	- when 3
-		%form{:action => '/EndStopRecording', :method => 'post'}
+		%form{:action => '/end_stop', :method => 'post', :class => 'padded-form'}
 			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state}
 	- when 4
-		%form{:action => '/resume', :method => 'post'}
+		%form{:action => '/resume', :method => 'post', :class => 'padded-form'}
 			%input{:type => 'submit', :value => 'Resume', :autofocus => 'true'}
 	-# record list
 	- if state == 2 || state == 3
