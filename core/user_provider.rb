@@ -15,9 +15,11 @@ class UserProvider
     users.insert(user_doc)
   end
 
-  def self.get(login) #  need more any_nil_or_empty
+  def self.get(login)
     user_doc = users.find_one('_id' => login)
-    user_doc.nil? ? nil : User.new(user_doc)
+    unless user_doc.nil?
+      User.new(user_doc)
+    end
   end
 
   def self.set_state(login, state)

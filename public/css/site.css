@@ -36,6 +36,11 @@ fieldset
     width: 300px;
 }
 
+.padding-left-10px
+{
+    padding-left: 10px;
+}
+
 .text-align-right
 {
 	text-align: right;

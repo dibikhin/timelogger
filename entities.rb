@@ -1,3 +1,3 @@
 require "./entities/record"
 require "./entities/user"
-require "./entities/state"
+require "./entities/recorder_state"

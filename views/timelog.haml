@@ -1,30 +1,29 @@
 %fieldset
 	%legend
-		%h2= Time.now.strftime '%A, %B %-d'		#  Thursday, May 24
-	-# controls
+		%h2= Time.now.strftime '%A, %B %-d' #  Thursday, May 24
+	-# controls   todo replace magic constants
 	- case state
 	- when 0
 		%form{:action => '/start', :method => 'post', :class => 'padded-form'}
 			%input{:type => 'submit', :value => 'Start', :autofocus => 'true'}
 	- when 1
 		%form{:action => '/begin_save', :method => 'post', :class => 'padded-form'}
-			%input{:type => 'button', :value => 'Skip', :onclick => 'window.location="/skip"',
-				:autofocus => 'true' }
+			%input{:type => 'button', :value => 'Skip', :onclick => 'window.location="/skip"', :autofocus => 'true' }
 			%input{:type => 'submit', :value => 'Save'}
 			%input{:type => 'button', :value => 'Pause', :onclick => 'window.location="/pause"'}
 			or
 			%a{:href => '/begin_stop'} stop
 	- when 2
 		%form{:action => '/end_save', :method => 'post', :class => 'padded-form'}
-			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state}
+			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state, :utc_offset => utc_offset}
 	- when 3
 		%form{:action => '/end_stop', :method => 'post', :class => 'padded-form'}
-			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state}
+			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state, :utc_offset => utc_offset}
 	- when 4
 		%form{:action => '/resume', :method => 'post', :class => 'padded-form'}
 			%input{:type => 'submit', :value => 'Resume', :autofocus => 'true'}
 	-# record list
 	- if state == 2 || state == 3
-		= haml :recordList, :locals => {:todayRecords => todayRecords.select {|rec| rec.id != currentRecordId}}
+		= haml :recordList, :locals => {:todayRecords => todayRecords.select {|rec| rec.id != currentRecordId}, :utc_offset => utc_offset}
 	- else
-		= haml :recordList, :locals => {:todayRecords => todayRecords}
+		= haml :recordList, :locals => {:todayRecords => todayRecords, :utc_offset => utc_offset}

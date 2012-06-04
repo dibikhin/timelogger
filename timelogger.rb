@@ -25,16 +25,20 @@ get '/timelog' do
     today_records = RecordManager.get_today_records(user.login).sort_by { |rec| rec.startUtc }.reverse!
 
     haml :timelog,
-         :locals => {:state => user.state, :currentRecordId => user.currentRecordId, :todayRecords => today_records}
+         :locals => {
+             :state => user.state,
+             :currentRecordId => user.currentRecordId,
+             :todayRecords => today_records,
+             :utc_offset => user.utc_offset}
   end
 end
 
 #   Timelog controller
 
 post '/start' do
-  user = UserManager.get_authenticated(request.cookies[settings.ticket])  # todo add to "before"
-  if !user.nil? && user.state == State::CAN_START
-    UserManager.set_state(user.login, State::RECORDING)
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state == RecorderState::CAN_START
+    UserManager.set_state(user.login, RecorderState::RECORDING)
     RecordManager.start_new_record(user.login)
     redirect '/timelog'
   end
@@ -42,19 +46,20 @@ end
 
 post '/begin_save' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == State::RECORDING
-    UserManager.set_state(user.login, State::SAVING)
+  if !user.nil? && user.state == RecorderState::RECORDING
+    UserManager.set_state(user.login, RecorderState::SAVING)
     redirect '/timelog'
   end
 end
 
 post '/end_save' do
   task_id, description = params[:task_id].strip, params[:description].strip
+
   unless Helpers.any_nil_or_empty?(description)
     user = UserManager.get_authenticated(request.cookies[settings.ticket])
-    if !user.nil? && user.state == State::SAVING
+    if !user.nil? && user.state == RecorderState::SAVING
       RecordManager.end_record(user, task_id, description)
-      UserManager.set_state(user.login, State::RECORDING)
+      UserManager.set_state(user.login, RecorderState::RECORDING)
       RecordManager.start_new_record(user.login)
     end
   end
@@ -63,8 +68,8 @@ end
 
 get '/begin_stop' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == State::RECORDING
-    UserManager.set_state(user.login, State::STOPPING)
+  if !user.nil? && user.state == RecorderState::RECORDING
+    UserManager.set_state(user.login, RecorderState::STOPPING)
     redirect '/timelog'
   end
 end
@@ -73,9 +78,9 @@ post '/end_stop' do
   task_id, description = params[:task_id].strip, params[:description].strip
   unless Helpers.any_nil_or_empty?(description)
     user = UserManager.get_authenticated(request.cookies[settings.ticket])
-    if !user.nil? && user.state == State::STOPPING
+    if !user.nil? && user.state == RecorderState::STOPPING
       RecordManager.end_record(user, task_id, description)
-      UserManager.set_state(user.login, State::CAN_START)
+      UserManager.set_state(user.login, RecorderState::CAN_START)
     end
   end
   redirect '/timelog'
@@ -83,25 +88,25 @@ end
 
 get '/pause' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == State::RECORDING
+  if !user.nil? && user.state == RecorderState::RECORDING
     RecordManager.pause(user.currentRecordId)
-    UserManager.set_state(user.login, State::PAUSED)
+    UserManager.set_state(user.login, RecorderState::PAUSED)
     redirect '/timelog'
   end
 end
 
 post '/resume' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == State::PAUSED
+  if !user.nil? && user.state == RecorderState::PAUSED
     RecordManager.resume(user.currentRecordId)
-    UserManager.set_state(user.login, State::RECORDING)
+    UserManager.set_state(user.login, RecorderState::RECORDING)
     redirect '/timelog'
   end
 end
 
 get '/skip' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == State::RECORDING
+  if !user.nil? && user.state == RecorderState::RECORDING
     RecordManager.end_record(user)
     RecordManager.start_new_record(user.login)
   end
@@ -110,17 +115,17 @@ end
 
 get '/skip_on_stop' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && user.state == State::STOPPING
+  if !user.nil? && user.state == RecorderState::STOPPING
     RecordManager.end_record(user)
-    UserManager.set_state(user.login, State::CAN_START)
+    UserManager.set_state(user.login, RecorderState::CAN_START)
   end
   redirect '/timelog'
 end
 
 get '/continue' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && (user.state == State::SAVING || user.state == State::STOPPING)
-    UserManager.set_state(user.login, State::RECORDING)
+  if !user.nil? && (RecorderState::SAVING..RecorderState::STOPPING) === user.state
+    UserManager.set_state(user.login, RecorderState::RECORDING)
   end
   redirect '/timelog'
 end

@@ -36,7 +36,7 @@ class RecordProvider
   end
 
   def self.set_last_pause_start(current_record_id)
-    records.update({'_id' => current_record_id}, {'$set' => {'LastPauseStartUtc' => Time.now.utc}})
+    records.update({'_id' => current_record_id}, {'$set' => {'LastPauseStartUtc' => Time.now.utc}}) # todo pull up time
   end
 
   def self.set_resume(current_record_id, last_pause_start_utc, total_paused_duration)

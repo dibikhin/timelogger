@@ -3,10 +3,10 @@
 		- todayRecords.each do |record|
 			- if record.isFinished
 				%tr
-					%td.text-align-right= record.startUtc.localtime.strftime('%l:%M %P')
-					%td.text-align-right= record.duration.strftime('%-H h %-M min %-S sec')
-					%td.text-align-right= record.taskId
-					%td
+					%td.text-align-right= record.startUtc.localtime(utc_offset).strftime('%l:%M %P')
+					%td.text-align-right.padding-left-10px= record.duration.nice_strftime
+					%td.text-align-right.padding-left-10px= record.taskId
+					%td.padding-left-10px
 						- if record.description.nil? && record.taskId.nil?
 							%i
 								skipped
@@ -14,25 +14,25 @@
 							= record.description
 			- else
 				%tr
-					%td.text-align-right= record.startUtc.localtime.strftime('%l:%M %P')
-					%td.text-align-right
+					%td.text-align-right= record.startUtc.localtime(utc_offset).strftime('%l:%M %P')
+					%td.text-align-right.padding-left-10px
 						- if record.lastPauseStartUtc.nil?		# record wasn't paused
-							- currentDuration = Time.now.utc - record.startUtc
+							- current_duration = Time.now.utc - record.startUtc
 							- if !record.totalPausedDuration.nil?
-								- currentDuration -= record.totalPausedDuration
-							= Time.at(currentDuration).utc.strftime('%-H h %-M min %-S sec')
+								- current_duration -= record.totalPausedDuration
+							= Time.at(current_duration).utc.nice_strftime
 						- else
-							- recordDurationWoPauses = Time.now.utc - record.startUtc - (Time.now.utc - record.lastPauseStartUtc)
+							- duration_wo_pauses = Time.now.utc - record.startUtc - (Time.now.utc - record.lastPauseStartUtc)
 							- if !record.totalPausedDuration.nil?
-								- recordDurationWoPauses -= record.totalPausedDuration
-							= Time.at(recordDurationWoPauses).utc.strftime('%-H h %-M min %-S sec')
-					%td.text-align-right= record.taskId
-					%td
+								- duration_wo_pauses -= record.totalPausedDuration
+							= Time.at(duration_wo_pauses).utc.nice_strftime
+					%td.text-align-right.padding-left-10px= record.taskId
+					%td.padding-left-10px
 						- if record.lastPauseStartUtc.nil?
 							%i
 								= "...recording"
 						- else
 							%i
 								= "...last paused"
-								- pausedDuration = Time.now.utc - record.lastPauseStartUtc
-								= Time.at(pausedDuration).utc.strftime('%-H h %-M min %-S sec') + ' ago '
+								- paused_duration = Time.now.utc - record.lastPauseStartUtc
+								= Time.at(paused_duration).utc.nice_strftime + ' ago '

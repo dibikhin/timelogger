@@ -52,16 +52,19 @@ class RecordManager
   def self.save_to_redmine(user, record)
     #if (user.IsRedmineConfigured()
     unless Helpers.any_nil_or_empty?(record.description, record.taskId)
-      # RestClient::ResourceNotFound when issue not found
-      # Apache Web Server Unavailable
       # 503 - Redmine Service Temporarily Unavailable
       # 406 - Redmine URL incorrect
       # 401 - Redmine unauthorized
       # Redmine ignores errors in ActivityId and ProjectId
-      RestClient.post(
-          user.redmineTimeEntriesUrl,
-          create_time_entry_json(record, user.redmineDefaultActivityId),
-          {:content_type => :json, 'X-Redmine-API-Key' => user.redmineApiKey})
+      # 404 - Redmine: issue not found
+      begin
+        RestClient.post(
+            user.redmineTimeEntriesUrl,
+            create_time_entry_json(record, user.redmineDefaultActivityId),
+            {:content_type => :json, 'X-Redmine-API-Key' => user.redmineApiKey})
+      rescue RestClient::ResourceNotFound
+        # a.i. ignored
+      end
     end
   end
 

@@ -1,11 +1,11 @@
-= currentRecord.startUtc.localtime.strftime('%l:%M %P')
-- if !currentRecord.duration.nil?
-  = currentRecord.duration.strftime('%-H h %-M min %-S sec')
+= currentRecord.startUtc.localtime(utc_offset).strftime('%l:%M %P')
+- if !currentRecord.duration.nil? # todo it happens never
+  = currentRecord.duration.nice_strftime
 - else
-  - currentDuration = Time.now.utc - currentRecord.startUtc
+  - current_duration = Time.now.utc - currentRecord.startUtc
   - if !currentRecord.totalPausedDuration.nil?
-    - currentDuration -= currentRecord.totalPausedDuration
-  = Time.at(currentDuration).utc.strftime('%-H h %-M min %-S sec')
+    - current_duration -= currentRecord.totalPausedDuration
+  = Time.at(current_duration).utc.nice_strftime
 %input{ :name => 'task_id', :placeholder => 'Task Id', :class => 'narrow-input text-align-right', :autofocus => 'true' }
 %input{ :name => 'description', :placeholder => 'Description', :class => 'almost-wide-input' }
 - if state == 3 # should stop
