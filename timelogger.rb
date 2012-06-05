@@ -200,6 +200,7 @@ end
 
 post '/profile' do
   time_entries_url, api_key, default_activity_id = params[:redmineTimeEntriesUrl], params[:redmineApiKey], params[:redmineDefaultActivityId]
+  # params[:utc_offset]
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
   unless user.nil?
     UserManager.set_redmine_settings(user.login, time_entries_url, api_key, default_activity_id)

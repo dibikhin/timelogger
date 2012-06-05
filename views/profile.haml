@@ -18,6 +18,12 @@
         %td= user.email
       %tr
         %td
+          Time zone
+        %td
+          %select#utc_offset{:name => 'utc_offset'}
+            %option{:value => '+04:00'} +04:00
+      %tr
+        %td
           &nbsp;
       %tr
         %td

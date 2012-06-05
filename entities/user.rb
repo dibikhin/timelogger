@@ -18,4 +18,8 @@ class User
 
     @utc_offset = doc['UtcOffset']
   end
+
+  def is_redmine_configured?
+    !Helpers.any_nil_or_empty?(@redmineApiKey,@redmineDefaultActivityId, @redmineTimeEntriesUrl)
+  end
 end

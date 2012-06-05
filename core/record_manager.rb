@@ -26,7 +26,10 @@ class RecordManager
     RecordProvider.set(record)
     UserProvider.set_current_record_id(user.login, nil)
 
-    save_to_redmine(user, record) # todo return SaveToRedmine(login, record);
+    # todo return SaveToRedmine(login, record);
+    if user.is_redmine_configured?
+      save_to_redmine(user, record)
+    end
   end
 
   def self.pause(current_record_id)
@@ -50,7 +53,6 @@ class RecordManager
 
   private
   def self.save_to_redmine(user, record)
-    #if (user.IsRedmineConfigured()
     unless Helpers.any_nil_or_empty?(record.description, record.taskId)
       # 503 - Redmine Service Temporarily Unavailable
       # 406 - Redmine URL incorrect
@@ -62,8 +64,10 @@ class RecordManager
             user.redmineTimeEntriesUrl,
             create_time_entry_json(record, user.redmineDefaultActivityId),
             {:content_type => :json, 'X-Redmine-API-Key' => user.redmineApiKey})
-      rescue RestClient::ResourceNotFound
+      rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
         # a.i. ignored
+      rescue RestClient::ResourceNotFound
+        # a.i. ignored too
       end
     end
   end
