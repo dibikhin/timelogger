@@ -1,4 +1,6 @@
 class Helpers
+  MONGOHQ_URL = ENV['MONGOHQ_URL']
+
   def self.user_date_start(user_utc_offset)
     # 2012-06-07 06:00:00 +0100 ->
     # 2012-06-07 09:00:00 +0400 ->

@@ -1,6 +1,6 @@
 %fieldset
 	%legend
-		%h2= Time.now.strftime '%A, %B %-d' #  Thursday, May 24
+		%h2= Time.now.localtime(utc_offset).strftime('%A, %B %-d') #  Thursday, May 24
 	-# controls   todo replace magic constants
 	- case state
 	- when 0
