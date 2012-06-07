@@ -1,4 +1,15 @@
 class Helpers
+  def self.user_date_start(user_utc_offset)
+    # 2012-06-07 06:00:00 +0100 ->
+    # 2012-06-07 09:00:00 +0400 ->
+    # 2012-06-07 00:00:00 +0400
+
+    server_now = Time.now
+    user_now = server_now.localtime(user_utc_offset)
+    user_time_seconds = (user_now.hour * 60 * 60 + user_now.min * 60 + user_now.sec)
+    user_now - user_time_seconds
+  end
+
   def self.any_nil_or_empty?(*params)
     params.any? { |param| nil_or_empty?(param) }
   end

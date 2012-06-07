@@ -16,7 +16,7 @@ class Record
     total_paused_duration_str = doc['TotalPausedDuration']
     if !total_paused_duration_str.nil?
       total_paused_time = Time.parse(total_paused_duration_str)
-      @totalPausedDuration = total_paused_time.hour * 60 + total_paused_time.min * 60 + total_paused_time.sec
+      @totalPausedDuration = total_paused_time.hour * 60 * 60 + total_paused_time.min * 60 + total_paused_time.sec
     end
   end
 

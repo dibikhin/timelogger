@@ -6,9 +6,8 @@ require "./core/user_provider"
 require './helpers'
 
 class RecordManager
-  def self.get_today_records(login)
-    time = Time.now # Wed May 23 00:00:00 +0400 2012 -> Tue May 22 20:00:00 UTC 2012
-    RecordProvider.get_record_list(login, Time.local(time.year, time.month, time.day).utc, Time.now.utc)
+  def self.get_records(login, start_utc, end_utc)
+    RecordProvider.get_record_list(login, start_utc, end_utc)
   end
 
   def self.start_new_record(login)

@@ -21,8 +21,11 @@ get '/timelog' do
     redirect '/logon'
   else
     @title = "Timelog"
-    @username = user.name # Mongo::ConnectionFailure below
-    today_records = RecordManager.get_today_records(user.login).sort_by { |rec| rec.startUtc }.reverse!
+    @username = user.name
+    user_date_start = Helpers.user_date_start(user.utc_offset)
+
+    # Mongo::ConnectionFailure below
+    today_records = RecordManager.get_records(user.login, user_date_start.utc, Time.now.utc).sort_by { |rec| rec.startUtc }.reverse!
 
     haml :timelog,
          :locals => {
@@ -40,16 +43,16 @@ post '/start' do
   if !user.nil? && user.state == RecorderState::CAN_START
     UserManager.set_state(user.login, RecorderState::RECORDING)
     RecordManager.start_new_record(user.login)
-    redirect '/timelog'
   end
+  redirect '/timelog'
 end
 
 post '/begin_save' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
   if !user.nil? && user.state == RecorderState::RECORDING
     UserManager.set_state(user.login, RecorderState::SAVING)
-    redirect '/timelog'
   end
+  redirect '/timelog'
 end
 
 post '/end_save' do
@@ -70,8 +73,8 @@ get '/begin_stop' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
   if !user.nil? && user.state == RecorderState::RECORDING
     UserManager.set_state(user.login, RecorderState::STOPPING)
-    redirect '/timelog'
   end
+  redirect '/timelog'
 end
 
 post '/end_stop' do
@@ -91,8 +94,8 @@ get '/pause' do
   if !user.nil? && user.state == RecorderState::RECORDING
     RecordManager.pause(user.currentRecordId)
     UserManager.set_state(user.login, RecorderState::PAUSED)
-    redirect '/timelog'
   end
+  redirect '/timelog'
 end
 
 post '/resume' do
@@ -100,8 +103,8 @@ post '/resume' do
   if !user.nil? && user.state == RecorderState::PAUSED
     RecordManager.resume(user.currentRecordId)
     UserManager.set_state(user.login, RecorderState::RECORDING)
-    redirect '/timelog'
   end
+  redirect '/timelog'
 end
 
 get '/skip' do
