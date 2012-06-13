@@ -23,6 +23,7 @@ class Helpers
   end
 end
 
+
 class Time
   def nice_strftime
     if self.nil?

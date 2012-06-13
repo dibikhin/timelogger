@@ -21,6 +21,7 @@ get '/timelog' do
     redirect '/logon'
   else
     @title = "Timelog"
+    cache_control :private, :no_cache
     @username = user.name
     user_date_start = Helpers.user_date_start(user.utc_offset)
 
