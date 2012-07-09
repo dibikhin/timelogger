@@ -41,3 +41,9 @@ class Time
     end
   end
 end
+
+class Fixnum
+  def in?(range)
+    range === self
+  end
+end

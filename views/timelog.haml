@@ -1,29 +1,41 @@
 %fieldset
-	%legend
-		%h2= Time.now.localtime(utc_offset).strftime('%A, %B %-d') #  Thursday, May 24
-	-# controls
-	- case state
-	- when RecorderState::CAN_START
-		%form{:action => '/start', :method => 'post', :class => 'padded-form'}
-			%input{:type => 'submit', :value => 'Start', :autofocus => 'true'}
-	- when RecorderState::RECORDING
-		%form{:action => '/begin_save', :method => 'post', :class => 'padded-form'}
-			%input{:type => 'button', :value => 'Skip', :onclick => "window.location='/skip'", :autofocus => 'true' }
-			%input{:type => 'submit', :value => 'Save'}
-			%input{:type => 'button', :value => 'Pause', :onclick => 'window.location="/pause"'}
-			or
-			%a{:href => '/begin_stop'} stop
-	- when RecorderState::SAVING
-		%form{:action => '/end_save', :method => 'post', :class => 'padded-form'}
-			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state, :utc_offset => utc_offset}
-	- when RecorderState::STOPPING
-		%form{:action => '/end_stop', :method => 'post', :class => 'padded-form'}
-			= haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state, :utc_offset => utc_offset}
-	- when RecorderState::PAUSED
-		%form{:action => '/resume', :method => 'post', :class => 'padded-form'}
-			%input{:type => 'submit', :value => 'Resume', :autofocus => 'true'}
-	-# record list
-	- if state == RecorderState::SAVING || state == RecorderState::STOPPING
-		= haml :recordList, :locals => {:todayRecords => todayRecords.select {|rec| rec.id != currentRecordId}, :utc_offset => utc_offset}
-	- else
-		= haml :recordList, :locals => {:todayRecords => todayRecords, :utc_offset => utc_offset}
+  %legend
+    %h2= Time.now.localtime(utc_offset).strftime('%A, %B %-d') #  Thursday, May 24
+  -# controls
+  - case state
+  - when RecorderState::CAN_START
+    %form{:action => '/start', :method => 'post', :class => 'padded-form'}
+      %input{:type => 'submit', :value => 'Start', :autofocus => 'true'}
+  - when RecorderState::RECORDING
+    - if Helpers.any_nil_or_empty?(todayRecords)
+      %div{ :class => 'padded-form'}
+        %input{ :type => 'button', :value => 'Start', :onclick => 'window.location="/skip_on_error"', :autofocus => 'true' }
+    - else
+      %form{:action => '/begin_save', :method => 'post', :class => 'padded-form'}
+        %input{:type => 'button', :value => 'Skip', :onclick => "window.location='/skip'", :autofocus => 'true' }
+        %input{:type => 'submit', :value => 'Save'}
+        %input{:type => 'button', :value => 'Pause', :onclick => 'window.location="/pause"'}
+        or
+        %a{:href => '/begin_stop'} stop
+  - when RecorderState::SAVING
+    - if Helpers.any_nil_or_empty?(todayRecords)
+      %div{ :class => 'padded-form'}
+        %input{ :type => 'button', :value => 'Start', :onclick => 'window.location="/skip_on_error"', :autofocus => 'true' }
+    - else
+      %form{:action => '/end_save', :method => 'post', :class => 'padded-form'}
+        = haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state, :utc_offset => utc_offset}
+  - when RecorderState::STOPPING
+    - if Helpers.any_nil_or_empty?(todayRecords)
+      %div{ :class => 'padded-form'}
+        %input{ :type => 'button', :value => 'Start', :onclick => 'window.location="/skip_on_error"', :autofocus => 'true' }
+    - else
+      %form{:action => '/end_stop', :method => 'post', :class => 'padded-form'}
+        = haml :currentRecord, :locals => {:currentRecord => todayRecords.first, :state => state, :utc_offset => utc_offset}
+  - when RecorderState::PAUSED
+    %form{:action => '/resume', :method => 'post', :class => 'padded-form'}
+      %input{:type => 'submit', :value => 'Resume', :autofocus => 'true'}
+  -# record list
+  - if state == RecorderState::SAVING || state == RecorderState::STOPPING
+    = haml :recordList, :locals => {:todayRecords => todayRecords.select {|rec| rec.id != currentRecordId}, :utc_offset => utc_offset}
+  - else
+    = haml :recordList, :locals => {:todayRecords => todayRecords, :utc_offset => utc_offset}

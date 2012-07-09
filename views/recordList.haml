@@ -1,38 +1,38 @@
-- if !todayRecords.nil?
-	%table
-		- todayRecords.each do |record|
-			- if record.isFinished
-				%tr
-					%td.text-align-right= record.startUtc.localtime(utc_offset).strftime('%l:%M %P')
-					%td.text-align-right.padding-left-10px= record.duration.nice_strftime
-					%td.text-align-right.padding-left-10px= record.taskId
-					%td.padding-left-10px
-						- if record.description.nil? && record.taskId.nil?
-							%i
-								skipped
-						- else
-							= record.description
-			- else
-				%tr
-					%td.text-align-right= record.startUtc.localtime(utc_offset).strftime('%l:%M %P')
-					%td.text-align-right.padding-left-10px
-						- if record.lastPauseStartUtc.nil?		# record wasn't paused
-							- current_duration = Time.now.utc - record.startUtc
-							- if !record.totalPausedDuration.nil?
-								- current_duration -= record.totalPausedDuration
-							= Time.at(current_duration).utc.nice_strftime
-						- else
-							- duration_wo_pauses = Time.now.utc - record.startUtc - (Time.now.utc - record.lastPauseStartUtc)
-							- if !record.totalPausedDuration.nil?
-								- duration_wo_pauses -= record.totalPausedDuration
-							= Time.at(duration_wo_pauses).utc.nice_strftime
-					%td.text-align-right.padding-left-10px= record.taskId
-					%td.padding-left-10px
-						- if record.lastPauseStartUtc.nil?
-							%i
-								= "...recording"
-						- else
-							%i
-								= "...last paused"
-								- paused_duration = Time.now.utc - record.lastPauseStartUtc
-								= Time.at(paused_duration).utc.nice_strftime + ' ago '
+- if !Helpers.any_nil_or_empty?(todayRecords)
+  %table.padded-form
+    - todayRecords.each do |record|
+      - if record.isFinished
+        %tr
+          %td.text-align-right= record.startUtc.localtime(utc_offset).strftime('%l:%M %P')
+          %td.text-align-right.padding-left-10px= record.duration.nice_strftime
+          %td.text-align-right.padding-left-10px= record.taskId
+          %td.padding-left-10px
+            - if record.description.nil? && record.taskId.nil?
+              %i
+                skipped
+            - else
+              = record.description
+      - else
+        %tr
+          %td.text-align-right= record.startUtc.localtime(utc_offset).strftime('%l:%M %P')
+          %td.text-align-right.padding-left-10px
+            - if record.lastPauseStartUtc.nil?    # record wasn't paused
+              - current_duration = Time.now.utc - record.startUtc
+              - if !record.totalPausedDuration.nil?
+                - current_duration -= record.totalPausedDuration
+              = Time.at(current_duration).utc.nice_strftime
+            - else
+              - duration_wo_pauses = Time.now.utc - record.startUtc - (Time.now.utc - record.lastPauseStartUtc)
+              - if !record.totalPausedDuration.nil?
+                - duration_wo_pauses -= record.totalPausedDuration
+              = Time.at(duration_wo_pauses).utc.nice_strftime
+          %td.text-align-right.padding-left-10px= record.taskId
+          %td.padding-left-10px
+            - if record.lastPauseStartUtc.nil?
+              %i
+                = "...recording"
+            - else
+              %i
+                = "...last paused"
+                - paused_duration = Time.now.utc - record.lastPauseStartUtc
+                = Time.at(paused_duration).utc.nice_strftime + ' ago '

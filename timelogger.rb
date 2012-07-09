@@ -126,9 +126,19 @@ get '/skip_on_stop' do
   redirect '/timelog'
 end
 
+get '/skip_on_error' do
+  user = UserManager.get_authenticated(request.cookies[settings.ticket])
+  if !user.nil? && user.state.in?(RecorderState::RECORDING..RecorderState::PAUSED)
+    RecordManager.end_record(user)
+    UserManager.set_state(user.login, RecorderState::RECORDING)
+    RecordManager.start_new_record(user.login)
+  end
+  redirect '/timelog'
+end
+
 get '/continue' do
   user = UserManager.get_authenticated(request.cookies[settings.ticket])
-  if !user.nil? && (RecorderState::SAVING..RecorderState::STOPPING) === user.state
+  if !user.nil? && user.state.in?(RecorderState::SAVING..RecorderState::STOPPING)
     UserManager.set_state(user.login, RecorderState::RECORDING)
   end
   redirect '/timelog'
